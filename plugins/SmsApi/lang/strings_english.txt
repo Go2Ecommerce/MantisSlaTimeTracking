@@ -1,5 +1,0 @@
-<?php
-$s_plugin_SmsApi_phone_number = 'Phone number';
-$s_plugin_SmsApi_title = 'Sms Api';
-$s_plugin_SmsApi_configuration_title = 'Configure SMS template';
-$s_plugin_SmsApi_smsApiKey= 'Sms Api Key';

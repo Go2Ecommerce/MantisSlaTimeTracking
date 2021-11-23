@@ -1,1 +1,0 @@
-Plugin do wysylania notyfikacji poprzez SMS-API
