@@ -8,7 +8,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
     {
         $this->name = 'SlaTimeTracking';
         $this->description = 'Plugin to time tracking sla';
-        $this->page = 'config_page';
+        $this->page = '';
         $this->version = '1.0.0';
         $this->requires = array( 'MantisCore' => '2.0.0' );
         $this->author = 'michal@go2ecommerce.pl';
@@ -18,6 +18,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
 
     function init() {
         plugin_require_api('core/SlaTimeTrackingApi.class.php');
+        plugin_require_api('core/ColumnViewIssuePage.class.php');
 
         $this->slaTimeTrackingApi = new SlaTimeTracking\SlaTimeTrackingApi();
     }
@@ -27,9 +28,44 @@ class SlaTimeTrackingPlugin extends MantisPlugin
             'EVENT_MENU_MAIN' => 'menu',
             'EVENT_BUG_DELETED' => 'deleteBug',
             'EVENT_REPORT_BUG' => 'createBug',
+            'EVENT_FILTER_COLUMNS' => 'column_add_in_view_all_bug_page',
+            'EVENT_VIEW_BUG_DETAILS' => 'viewBug',
             'EVENT_UPDATE_BUG' => 'updateBug'
         );
     }
+
+    function column_add_in_view_all_bug_page( $p_type_event, $p_param ){
+        $t_column = new \SlaTimeTracking\ColumnViewIssuePage();
+
+        return array( $t_column );
+    }
+
+    /**
+     * Show timecard and estimate information when viewing bugs.
+     * @param string Event name
+     * @param int Bug ID
+     */
+    function viewBug( $p_event, $p_bug_id ) {
+        $table = plugin_table( 'time_tracking', 'SlaTimeTracking');
+
+        $t_query = "SELECT * FROM {$table} WHERE bug_id=" . db_param();
+        $t_result = db_query( $t_query, array( $p_bug_id) );
+        $slaTime = 0;
+        if( db_affected_rows() > 0 ) {
+            $t_row = db_fetch_array($t_result);
+            $slaTime = $t_row['sla_time'];
+            if ($t_row['status'] === 'active') {
+                $slaTime += strtotime(date("Y-m-d G:i:s")) - strtotime($t_row['start_date']);
+            }
+
+            $slaTimeText = sprintf('%02d:%02d:%02d', ($slaTime/ 3600), ($slaTime/ 60 % 60), $slaTime % 60);
+        }
+
+        echo '<tr ', helper_alternate_class(), '>';
+        echo '<th class="bug-slatime category">Licznik czasu Sla</th><td>' . $slaTimeText . '</td>';
+        echo '</tr>';
+    }
+
 
     function createBug($p_event, $p_created_bug) {
         $table = plugin_table( 'time_tracking' );
