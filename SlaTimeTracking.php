@@ -57,9 +57,8 @@ class SlaTimeTrackingPlugin extends MantisPlugin
             if ($t_row['status'] === 'active') {
                 $slaTime += strtotime(date("Y-m-d G:i:s")) - strtotime($t_row['start_date']);
             }
-
-            $slaTimeText = sprintf('%02d:%02d:%02d', ($slaTime/ 3600), ($slaTime/ 60 % 60), $slaTime % 60);
         }
+        $slaTimeText = sprintf('%02d:%02d:%02d', ($slaTime/ 3600), ($slaTime/ 60 % 60), $slaTime % 60);
 
         echo '<tr ', helper_alternate_class(), '>';
         echo '<th class="bug-slatime category">Licznik czasu Sla</th><td>' . $slaTimeText . '</td>';
@@ -90,21 +89,9 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         $t_result = db_query( $t_query, array( $p_updated_bug->id ) );
 
         if( db_affected_rows() > 0 ) {
-            //spis statusow
-            // 10 -> nowy
-            //20 -> zwrocony
-            //30 -> uznany
-            //40 -> potwierdzony
-            //50 -> przypisany
-            //60 -> zawieszony
-            // 80 -> rozwiazany
-            // 90 -> zamkniety
-
             $t_row = db_fetch_array( $t_result );
 
-            //zmiana na status rozwiazany lub zakonczony
             if (($p_original_bug->status !== 80 && $p_updated_bug->status === 80) || ($p_original_bug->status !== 90 && $p_updated_bug->status === 90)) {
-                //jesli zmiana nastapila ze statusu wstrzymany
                 if ($p_original_bug->status === 60) {
                     $fields = [
                         'status' => 'closed'
@@ -123,7 +110,6 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                 ];
             }
 
-            //status zadania zmienia sie na wstrzymany = 60 zatrzymujemy liczenie czasu
             if ($p_original_bug->status !== 60 && $p_updated_bug->status === 60) {
                 $fields = [
                     'end_date' => date("Y-m-d G:i:s"),
@@ -132,7 +118,6 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                 ];
             }
 
-            //zmiana statusu z zakonczony lub rozwiazany nie na rozwiazany/zakonczony/wstrzymany
             if (($p_original_bug->status === 80 || $p_original_bug->status === 90) && (!in_array($p_updated_bug->status, array(60,80,90)))) {
                 $fields = [
                     'start_date' => date("Y-m-d G:i:s"),
@@ -140,8 +125,6 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                 ];
             }
 
-
-            //zmiana z statusow zakonczony/rozwiazany
 
             if (isset($fields)) {
                 $this->slaTimeTrackingApi->updateSlaTimeTracking($p_updated_bug->id, $fields);
