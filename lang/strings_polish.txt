@@ -1,0 +1,2 @@
+<?php
+$s_plugin_SlaTimeTracking_slaCounter = 'Licznik czasu SLA';

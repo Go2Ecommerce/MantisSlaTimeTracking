@@ -61,7 +61,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         $slaTimeText = sprintf('%02d:%02d:%02d', ($slaTime/ 3600), ($slaTime/ 60 % 60), $slaTime % 60);
 
         echo '<tr ', helper_alternate_class(), '>';
-        echo '<th class="bug-slatime category">Licznik czasu Sla</th><td>' . $slaTimeText . '</td>';
+        echo '<th class="bug-slatime category">' . plugin_lang_get('slaCounter') . '</th><td>' . $slaTimeText . '</td>';
         echo '</tr>';
     }
 

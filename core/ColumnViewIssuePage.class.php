@@ -19,7 +19,7 @@ class ColumnViewIssuePage extends \MantisColumn {
 
         $this->sortable = TRUE;
 
-        $this->title = 'Licznik czasu Sla';
+        $this->title = plugin_lang_get('slaCounter');
 
         $this->column = 'sla_time';
     }
