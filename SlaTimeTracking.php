@@ -92,7 +92,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
             $t_row = db_fetch_array( $t_result );
 
             if (($p_original_bug->status !== 80 && $p_updated_bug->status === 80) || ($p_original_bug->status !== 90 && $p_updated_bug->status === 90)) {
-                if ($p_original_bug->status === 60) {
+                if (in_array($p_original_bug->status, array(60,80,90))) {
                     $fields = [
                         'status' => 'closed'
                     ];
