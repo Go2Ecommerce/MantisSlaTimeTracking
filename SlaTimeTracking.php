@@ -22,7 +22,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
 
         $this->slaTimeTrackingApi = new SlaTimeTracking\SlaTimeTrackingApi();
     }
-
+//test
     function hooks() {
         return array(
             'EVENT_MENU_MAIN' => 'menu',
