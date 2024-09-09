@@ -22,7 +22,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
 
         $this->slaTimeTrackingApi = new SlaTimeTracking\SlaTimeTrackingApi();
     }
-//test
+
     function hooks() {
         return array(
             'EVENT_MENU_MAIN' => 'menu',
@@ -47,7 +47,6 @@ class SlaTimeTrackingPlugin extends MantisPlugin
      */
     function viewBug( $p_event, $p_bug_id ) {
         $table = plugin_table( 'time_tracking', 'SlaTimeTracking');
-
         $t_query = "SELECT * FROM {$table} WHERE bug_id=" . db_param();
         $t_result = db_query( $t_query, array( $p_bug_id) );
         $slaTime = 0;
@@ -74,14 +73,15 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         db_query( $t_query, array( $p_created_bug->id ) );
 
         if( db_affected_rows() == 0 ) {
-            if ($p_created_bug->status === 10) {
+            $t_category_id = bug_get_field( $p_created_bug->id, 'category_id' );
+            //przy tworzeniu sla wpisu sprawdzamy czy status rowna sie nowy i czy kategoria jest inna niz konserwacja lub przeglad
+            if ($p_created_bug->status === 10 && !in_array($t_category_id, array(60,80))) {
                 $this->slaTimeTrackingApi->insertSlaTimeTracking($p_created_bug->id);
             }
         }
     }
 
     function updateBug($p_event, $p_original_bug, $p_updated_bug) {
-
         $table = plugin_table( 'time_tracking' );
         db_param_push();
         $t_query = " SELECT * 
@@ -89,9 +89,20 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         $t_result = db_query( $t_query, array( $p_updated_bug->id ) );
 
         if( db_affected_rows() > 0 ) {
+            //jesli pole przyczyna ma wartosc Niezasadne to zawieszamy liczenie sla o ile byl taki wpis
+            if ($reasonFieldValue === 'Niezasadne') {
+                $fields = [
+                    'end_date' => date("Y-m-d G:i:s"),
+                    'sla_time' => $t_row['sla_time'] + (strtotime(date("Y-m-d G:i:s")) - strtotime($t_row['start_date'])),
+                    'status' => 'suspended'
+                ];
+            } else {
             $t_row = db_fetch_array( $t_result );
 
+            //status poprzedni inny niz rozwiązany zmieniony na rozwiązany
+            //status poprzedni inny niz zamkniety zmieniony na zamkniety
             if (($p_original_bug->status !== 80 && $p_updated_bug->status === 80) || ($p_original_bug->status !== 90 && $p_updated_bug->status === 90)) {
+                //jesli status poprzedni jeden z (wstrzymany,rozwiazany, zakmniety)
                 if (in_array($p_original_bug->status, array(60,80,90))) {
                     $fields = [
                         'status' => 'closed'
@@ -109,7 +120,9 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                     'status' => 'active'
                 ];
             }
+            //do powyzszego: jesli status zmienia sie ze wstrzymanego na jakikolwiek inny niz wstrzymany a byl wczesniej wstrzymany
 
+            //jesli status zmienia sie na wstrzymany
             if ($p_original_bug->status !== 60 && $p_updated_bug->status === 60) {
                 $fields = [
                     'end_date' => date("Y-m-d G:i:s"),
@@ -118,19 +131,25 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                 ];
             }
 
+            //jesli status rozwiazany i zamkniety zmienia sie na inny niz (wstrzymany, rozwiazany, zamkniety)
             if (($p_original_bug->status === 80 || $p_original_bug->status === 90) && (!in_array($p_updated_bug->status, array(60,80,90)))) {
                 $fields = [
                     'start_date' => date("Y-m-d G:i:s"),
                     'status' => 'active'
                 ];
             }
-
+        }
 
             if (isset($fields)) {
                 $this->slaTimeTrackingApi->updateSlaTimeTracking($p_updated_bug->id, $fields);
             }
+        } else {
+            //jesli nie ma jeszcze sla trackingu a aktualizujemy bug pytanie jakie dac tu warunki bo status nowy pewnie juz istniec nie bedzie
+            $t_category_id = bug_get_field( $p_updated_bug->id, 'category_id' );
+            if ($p_updated_bug->status === 10 && !in_array($t_category_id, array(60,80))) {
+                $this->slaTimeTrackingApi->insertSlaTimeTracking($p_updated_bug->id);
+            }
         }
-
     }
 
     function deleteBug($p_event, $p_bug_id) {
