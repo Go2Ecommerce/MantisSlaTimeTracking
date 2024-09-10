@@ -78,8 +78,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         db_query($t_query, array($p_created_bug->id));
 
         if (db_affected_rows() == 0) {
-            $t_category_id = bug_get_field($p_created_bug->id, 'category_id');
-            $t_category_name = category_get_field( $t_category_id, 'name' );
+            $t_category_name = category_get_field( $p_created_bug->category_id, 'name' );
 
             //przy tworzeniu sla wpisu sprawdzamy czy status rowna sie nowy i czy kategoria jest inna niz konserwacja lub przeglad
             if ($p_created_bug->status === 10 && !in_array($t_category_name, array('Przegląd', 'Konserwacja', 'Przegląd/Konserwacja'))) {
@@ -95,9 +94,8 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         $t_query = " SELECT * 
                      FROM {$table} WHERE bug_id=" . db_param();
         $t_result = db_query($t_query, array($p_updated_bug->id));
-
-        $t_category_id = bug_get_field($p_updated_bug->id, 'category_id');
-        $t_category_name = category_get_field( $t_category_id, 'name' );
+        
+        $u_category_name = category_get_field( $p_updated_bug->category_id, 'name' );
 
         if (db_result( $t_result ) > 0) {
             $reasonFieldValue = custom_field_get_value(21, $p_updated_bug->id);
@@ -153,7 +151,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
             }
 
             //jesli zmienione na ktoras z tych kategorii to zerujemy licznik
-            if (in_array($t_category_name, array('Przegląd', 'Konserwacja', 'Przegląd/Konserwacja'))) {
+            if (in_array($u_category_name, array('Przegląd', 'Konserwacja', 'Przegląd/Konserwacja'))) {
                 $this->slaTimeTrackingApi->removeSlaTimeTracking($p_updated_bug->id);
             }
 
@@ -161,8 +159,9 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                 $this->slaTimeTrackingApi->updateSlaTimeTracking($p_updated_bug->id, $fields);
             }
         } else {
-            //jesli nie ma jeszcze sla trackingu a kategoria bedzie inna niz przeglad/konserwacja to uruchamiamy go
-            if (!in_array($t_category_name, array('Przegląd', 'Konserwacja', 'Przegląd/Konserwacja'))) {
+            $o_category_name = category_get_field( $p_original_bug->category_id, 'name' );
+            //jesli nie ma jeszcze sla trackingu a kategoria zmieniana jest z przeglad/konserwacja na cos innego to uruchamiamy go
+            if (in_array($o_category_name, array('Przegląd', 'Konserwacja', 'Przegląd/Konserwacja')) && !in_array($u_category_name, array('Przegląd', 'Konserwacja', 'Przegląd/Konserwacja'))) {
                 $this->slaTimeTrackingApi->insertSlaTimeTracking($p_updated_bug->id);
             }
         }
