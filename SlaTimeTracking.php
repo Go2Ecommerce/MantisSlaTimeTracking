@@ -9,7 +9,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         $this->name = 'SlaTimeTracking';
         $this->description = 'Plugin to time tracking sla';
         $this->page = '';
-        $this->version = '1.0.0';
+        $this->version = '2.0.0';
         $this->requires = array('MantisCore' => '2.0.0');
         $this->author = 'michal@go2ecommerce.pl';
         $this->contact = '';
