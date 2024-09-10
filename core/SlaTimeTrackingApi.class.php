@@ -37,4 +37,15 @@ class SlaTimeTrackingApi {
 
         db_query($t_query, $t_sql_param);
     }
+
+    function removeSlaTimeTracking($bug_id) {
+        $t_debug = '/* ' . __METHOD__ . ' */ ';
+
+        $table = plugin_table('time_tracking');
+        $t_query = " $t_debug DELETE FROM {$table} 
+                     WHERE bug_id=" . db_param();
+
+        $t_sql_param = array($bug_id);
+        db_query($t_query, $t_sql_param);
+    }
 }

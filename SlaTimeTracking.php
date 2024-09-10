@@ -79,8 +79,10 @@ class SlaTimeTrackingPlugin extends MantisPlugin
 
         if (db_affected_rows() == 0) {
             $t_category_id = bug_get_field($p_created_bug->id, 'category_id');
+            $t_category_name = category_get_field( $t_category_id, 'name' );
+
             //przy tworzeniu sla wpisu sprawdzamy czy status rowna sie nowy i czy kategoria jest inna niz konserwacja lub przeglad
-            if ($p_created_bug->status === 10 && !in_array($t_category_id, array(60, 80))) {
+            if ($p_created_bug->status === 10 && !in_array($t_category_name, array('Przegląd', 'Konserwacja', 'Przegląd/Konserwacja'))) {
                 $this->slaTimeTrackingApi->insertSlaTimeTracking($p_created_bug->id);
             }
         }
@@ -94,7 +96,11 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                      FROM {$table} WHERE bug_id=" . db_param();
         $t_result = db_query($t_query, array($p_updated_bug->id));
 
-        if (db_affected_rows() > 0) {
+        $t_category_id = bug_get_field($p_updated_bug->id, 'category_id');
+        $t_category_name = category_get_field( $t_category_id, 'name' );
+
+        if (db_result( $t_result ) > 0) {
+            $reasonFieldValue = custom_field_get_value(21, $p_updated_bug->id);
             //jesli pole przyczyna ma wartosc Niezasadne to zawieszamy liczenie sla o ile byl taki wpis
             if ($reasonFieldValue === 'Niezasadne') {
                 $fields = [
@@ -146,16 +152,21 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                 }
             }
 
+            //jesli zmienione na ktoras z tych kategorii to zerujemy licznik
+            if (in_array($t_category_name, array('Przegląd', 'Konserwacja', 'Przegląd/Konserwacja'))) {
+                $this->slaTimeTrackingApi->removeSlaTimeTracking($p_updated_bug->id);
+            }
+
             if (isset($fields)) {
                 $this->slaTimeTrackingApi->updateSlaTimeTracking($p_updated_bug->id, $fields);
             }
         } else {
-            //jesli nie ma jeszcze sla trackingu a aktualizujemy bug pytanie jakie dac tu warunki bo status nowy pewnie juz istniec nie bedzie
-            $t_category_id = bug_get_field($p_updated_bug->id, 'category_id');
-            if ($p_updated_bug->status === 10 && !in_array($t_category_id, array(60, 80))) {
+            //jesli nie ma jeszcze sla trackingu a kategoria bedzie inna niz przeglad/konserwacja to uruchamiamy go
+            if (!in_array($t_category_name, array('Przegląd', 'Konserwacja', 'Przegląd/Konserwacja'))) {
                 $this->slaTimeTrackingApi->insertSlaTimeTracking($p_updated_bug->id);
             }
         }
+        bug_clear_cache_all( $p_updated_bug->id );
     }
 
     function deleteBug($p_event, $p_bug_id)
