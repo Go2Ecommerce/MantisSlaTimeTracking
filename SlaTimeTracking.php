@@ -95,12 +95,12 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         $t_query = " SELECT * 
                      FROM {$table} WHERE bug_id=" . db_param();
         $t_result = db_query($t_query, array($p_updated_bug->id));
-        
+        $t_row = db_fetch_array($t_result);
         $u_category_name = category_get_field( $p_updated_bug->category_id, 'name' );
 
         date_default_timezone_set('Europe/Warsaw');
 
-        if (db_result( $t_result ) > 0) {
+        if ($t_row) {
             $reasonFieldValue = custom_field_get_value(21, $p_updated_bug->id);
             //jesli pole przyczyna ma wartosc Niezasadne to zawieszamy liczenie sla o ile byl taki wpis
             if ($reasonFieldValue === 'Niezasadne') {
@@ -110,8 +110,6 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                     'status' => 'suspended'
                 ];
             } else {
-                $t_row = db_fetch_array($t_result);
-
                 //status poprzedni inny niz rozwiązany zmieniony na rozwiązany
                 //status poprzedni inny niz zamkniety zmieniony na zamkniety
                 if (($p_original_bug->status !== 80 && $p_updated_bug->status === 80) || ($p_original_bug->status !== 90 && $p_updated_bug->status === 90)) {
