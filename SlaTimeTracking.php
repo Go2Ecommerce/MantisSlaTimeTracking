@@ -58,6 +58,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
             $t_row = db_fetch_array($t_result);
             $slaTime = $t_row['sla_time'];
             if ($t_row['status'] === 'active') {
+                date_default_timezone_set('Europe/Warsaw');
                 $slaTime += strtotime(date("Y-m-d G:i:s")) - strtotime($t_row['start_date']);
             }
         }
@@ -96,6 +97,8 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         $t_result = db_query($t_query, array($p_updated_bug->id));
         
         $u_category_name = category_get_field( $p_updated_bug->category_id, 'name' );
+
+        date_default_timezone_set('Europe/Warsaw');
 
         if (db_result( $t_result ) > 0) {
             $reasonFieldValue = custom_field_get_value(21, $p_updated_bug->id);
