@@ -104,11 +104,13 @@ class SlaTimeTrackingPlugin extends MantisPlugin
             $reasonFieldValue = custom_field_get_value(21, $p_updated_bug->id);
             //jesli pole przyczyna ma wartosc Niezasadne to zawieszamy liczenie sla o ile byl taki wpis
             if ($reasonFieldValue === 'Niezasadne') {
-                $fields = [
-                    'end_date' => date("Y-m-d G:i:s"),
-                    'sla_time' => $t_row['sla_time'] + (strtotime(date("Y-m-d G:i:s")) - strtotime($t_row['start_date'])),
-                    'status' => 'suspended'
-                ];
+                if ($t_row['status'] !== 'suspended') {
+                    $fields = [
+                        'end_date' => date("Y-m-d G:i:s"),
+                        'sla_time' => $t_row['sla_time'] + (strtotime(date("Y-m-d G:i:s")) - strtotime($t_row['start_date'])),
+                        'status' => 'suspended'
+                    ];
+                }
             } else {
                 //status poprzedni inny niz rozwiązany zmieniony na rozwiązany
                 //status poprzedni inny niz zamkniety zmieniony na zamkniety
