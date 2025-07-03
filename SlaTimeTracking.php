@@ -91,7 +91,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
 
     function updateBug($p_event, $p_original_bug, $p_updated_bug)
     {
-        $field_name = 'Powód zgłoszenia';
+        $field_name = 'Powód wstrzymania';
         $custom_field_id = custom_field_get_id_from_name($field_name);
 
         $suspendByReason = false;
@@ -233,7 +233,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
     }
 
     function addSuspendReasonField($p_event, $p_bug_id) {
-        $field_name = 'Powód zgłoszenia';
+        $field_name = 'Powód wstrzymania';
         $custom_field_id = custom_field_get_id_from_name($field_name);
         $t_project_id = bug_get_field($p_bug_id, 'project_id');
         $t_new_status = gpc_get_int('new_status', null);
