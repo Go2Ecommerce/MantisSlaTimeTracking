@@ -32,7 +32,8 @@ class SlaTimeTrackingPlugin extends MantisPlugin
             'EVENT_REPORT_BUG' => 'createBug',
             'EVENT_FILTER_COLUMNS' => 'column_add_in_view_all_bug_page',
             'EVENT_VIEW_BUG_DETAILS' => 'viewBug',
-            'EVENT_UPDATE_BUG' => 'updateBug'
+            'EVENT_UPDATE_BUG' => 'updateBug',
+            'EVENT_BUGNOTE_ADD_FORM' => 'addSuspendReasonField',
         );
     }
 
@@ -90,6 +91,30 @@ class SlaTimeTrackingPlugin extends MantisPlugin
 
     function updateBug($p_event, $p_original_bug, $p_updated_bug)
     {
+        $field_name = 'Powód zgłoszenia';
+        $custom_field_id = custom_field_get_id_from_name($field_name);
+
+        $suspendByReason = false;
+        if ($p_original_bug->status !== 60 && $p_updated_bug->status === 60) {
+            if (custom_field_is_linked($custom_field_id, $p_updated_bug->project_id)) {
+                $suspend_reason = gpc_get_string('suspend_reason', '');
+
+                if (is_blank($suspend_reason)) {
+                    form_security_purge('bug_update');
+                    $t_url = 'bug_change_status_page.php?id=' . $p_updated_bug->id . '&new_status=60';
+                    session_set('suspend_reason_error', true);
+                    bug_set_field($p_original_bug->id, 'status', $p_original_bug->status);
+                    print_header_redirect($t_url);
+                    return;
+                } else {
+                    custom_field_set_value($custom_field_id, $p_updated_bug->id, $suspend_reason);
+                }
+            }
+        } else {
+            custom_field_set_value($custom_field_id, $p_updated_bug->id, null);
+            $suspendByReason = true;
+        }
+
         $table = plugin_table('time_tracking');
         db_param_push();
         $t_query = " SELECT * 
@@ -207,4 +232,45 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         return $t_schema;
     }
 
+    function addSuspendReasonField($p_event, $p_bug_id) {
+        $field_name = 'Powód zgłoszenia';
+        $custom_field_id = custom_field_get_id_from_name($field_name);
+        $t_project_id = bug_get_field($p_bug_id, 'project_id');
+        $t_new_status = gpc_get_int('new_status', null);
+
+        if (!custom_field_is_linked($custom_field_id, $t_project_id) || $t_new_status != 60) {
+            return;
+        }
+
+        $t_field_def = custom_field_get_definition($custom_field_id);
+        $t_enum_values = explode('|', $t_field_def['possible_values']);
+
+        $has_error = session_get('suspend_reason_error', false);
+        // 🟡 Pobierz wcześniej zapisaną wartość z pola niestandardowego
+        $selected_value = custom_field_get_value($custom_field_id, $p_bug_id);
+
+        // 🔁 Jeśli formularz wrócił z błędem, użyj wartości z POST
+        if (isset($_POST['suspend_reason'])) {
+            $selected_value = gpc_get_string('suspend_reason', '');
+        }
+
+        echo '<tr>';
+        echo '<td class="category">Zawieszone ze względu na:</td>';
+        echo '<td>';
+
+        if ($has_error) {
+            echo '<div class="error-msg" style="color: red; margin-bottom: 5px;">Pole jest wymagane.</div>';
+        }
+
+        echo '<select name="suspend_reason"' . ($has_error ? ' style="border: 1px solid red;"' : '') . '>';
+        echo '<option value="">-- wybierz --</option>';
+        foreach ($t_enum_values as $value) {
+            $value = trim($value);
+            $selected = ($value === $selected_value) ? ' selected="selected"' : '';
+            echo '<option value="' . string_attribute($value) . '"' . $selected . '>' . string_display_line($value) . '</option>';
+        }
+        echo '</select>';
+        echo '</td>';
+        echo '</tr>';
+    }
 }
