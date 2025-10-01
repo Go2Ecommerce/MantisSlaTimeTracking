@@ -91,12 +91,11 @@ class SlaTimeTrackingPlugin extends MantisPlugin
 
     function updateBug($p_event, $p_original_bug, $p_updated_bug)
     {
-        $field_name = 'Powód wstrzymania';
-        $custom_field_id = custom_field_get_id_from_name($field_name);
+        $custom_field_id_suspend = custom_field_get_id_from_name('Zawieszone ze względu na:');
+        $custom_field_id_comment = custom_field_get_id_from_name('Komentarz dla PLK');
 
-        $suspendByReason = false;
         if ($p_original_bug->status !== 60 && $p_updated_bug->status === 60) {
-            if (custom_field_is_linked($custom_field_id, $p_updated_bug->project_id)) {
+            if (custom_field_is_linked($custom_field_id_suspend, $p_updated_bug->project_id)) {
                 $suspend_reason = gpc_get_string('suspend_reason', '');
 
                 if (is_blank($suspend_reason)) {
@@ -107,12 +106,11 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                     print_header_redirect($t_url);
                     return;
                 } else {
-                    custom_field_set_value($custom_field_id, $p_updated_bug->id, $suspend_reason);
+                    custom_field_set_value($custom_field_id_suspend, $p_updated_bug->id, $suspend_reason);
                 }
             }
         } else {
-            custom_field_set_value($custom_field_id, $p_updated_bug->id, null);
-            $suspendByReason = true;
+            custom_field_set_value($custom_field_id_suspend, $p_updated_bug->id, null);
         }
 
         $table = plugin_table('time_tracking');
@@ -126,6 +124,20 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         date_default_timezone_set('Europe/Warsaw');
 
         if ($t_row) {
+            //Logika zatrzymania SLA na podstawie pola "Komentarz dla PLK" – tylko gdy projekt ma pole "Zawieszone ze względu na:"
+            if (custom_field_is_linked($custom_field_id_suspend, $p_updated_bug->project_id)) {
+                $commentValue = custom_field_get_value($custom_field_id_comment, $p_updated_bug->id);
+                if (!is_blank($commentValue)) {
+                    if ($t_row['status'] !== 'suspended') {
+                        $fields = [
+                            'end_date' => date("Y-m-d G:i:s"),
+                            'sla_time' => $t_row['sla_time'] + (strtotime(date("Y-m-d G:i:s")) - strtotime($t_row['start_date'])),
+                            'status' => 'suspended'
+                        ];
+                    }
+                }
+            }
+
             $reasonFieldValue = custom_field_get_value(21, $p_updated_bug->id);
             //jesli pole przyczyna ma wartosc Niezasadne to zawieszamy liczenie sla o ile byl taki wpis
             if ($reasonFieldValue === 'Niezasadne') {
@@ -233,8 +245,7 @@ class SlaTimeTrackingPlugin extends MantisPlugin
     }
 
     function addSuspendReasonField($p_event, $p_bug_id) {
-        $field_name = 'Powód wstrzymania';
-        $custom_field_id = custom_field_get_id_from_name($field_name);
+        $custom_field_id = custom_field_get_id_from_name('Zawieszone ze względu na:');
         $t_project_id = bug_get_field($p_bug_id, 'project_id');
         $t_new_status = gpc_get_int('new_status', null);
 
