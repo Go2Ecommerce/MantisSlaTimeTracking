@@ -109,8 +109,6 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                     custom_field_set_value($custom_field_id_suspend, $p_updated_bug->id, $suspend_reason);
                 }
             }
-        } else {
-            custom_field_set_value($custom_field_id_suspend, $p_updated_bug->id, null);
         }
 
         $table = plugin_table('time_tracking');
@@ -276,7 +274,6 @@ class SlaTimeTrackingPlugin extends MantisPlugin
         echo '<select name="suspend_reason"' . ($has_error ? ' style="border: 1px solid red;"' : '') . '>';
         echo '<option value="">-- wybierz --</option>';
         foreach ($t_enum_values as $value) {
-            $value = trim($value);
             $selected = ($value === $selected_value) ? ' selected="selected"' : '';
             echo '<option value="' . string_attribute($value) . '"' . $selected . '>' . string_display_line($value) . '</option>';
         }
