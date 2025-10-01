@@ -172,8 +172,8 @@ class SlaTimeTrackingPlugin extends MantisPlugin
                 }
                 //do powyzszego: jesli status zmienia sie ze wstrzymanego na jakikolwiek inny niz wstrzymany a byl wczesniej wstrzymany
 
-                //jesli status zmienia sie na wstrzymany
-                if ($p_original_bug->status !== 60 && $p_updated_bug->status === 60) {
+                //jesli status zmienia sie na wstrzymany a licznik nie byl wstrzymany
+                if ($t_row['status'] !== 'suspended' && $p_original_bug->status !== 60 && $p_updated_bug->status === 60) {
                     $fields = [
                         'end_date' => date("Y-m-d G:i:s"),
                         'sla_time' => $t_row['sla_time'] + (strtotime(date("Y-m-d G:i:s")) - strtotime($t_row['start_date'])),
